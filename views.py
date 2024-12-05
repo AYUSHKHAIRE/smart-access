@@ -3,8 +3,10 @@ import time
 import mss
 from pynput.mouse import Listener
 from screeninfo import get_monitors
-from PIL import Image, ImageDraw, ImageGrab, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageGrab
 import io
+from PyQt5.QtWidgets import QVBoxLayout, QLabel, QDialog
+
 
 class ViewManager:
     def __init__(self):
@@ -17,6 +19,8 @@ class ViewManager:
         self.zoom_factor = 2
         self.stop_event = threading.Event()  # stop threads
         self.ui_stop_event = threading.Event()  # stop UI update thread
+        self.external_window_follow_mouse = False
+        self.external_winndow = None
 
     def get_screen_resolution(self):
         monitors = get_monitors()
@@ -27,6 +31,11 @@ class ViewManager:
 
     def get_mouse_position(self):
         return self.mouse_position
+    
+    def get_window_geometry(self):
+        if self.external_window:
+            self.window_geom = self.external_window.geometry()
+            return self.window_geom
 
     def take_screenshot_timely_threader(self):
         print("Initialized continue screenshot taker threader")
@@ -73,3 +82,28 @@ class ViewManager:
         print("Stopping threads...")
         self.stop_event.set()  # Signal threads to stop
         self.ui_stop_event.set()  # Stop UI update thread
+        
+    def enable_mouse_follow(self):
+        self.external_window_follow_mouse = True
+
+    def disable_mouse_follow(self):
+        self.external_window_follow_mouse = False
+
+class NewWindowLens(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("New Window")
+        self.resize(300, 200)
+
+        # Create layout and add QLabel for displaying image
+        self.layout = QVBoxLayout()
+        self.image_label = QLabel("Image will appear here")
+        self.layout.addWidget(self.image_label)
+
+        self.setLayout(self.layout)
+
+    def follow_mouse(self, x, y):
+        self.move(x - self.width() // 2, y - self.height() // 2)
+
+    def set_image(self, pixmap):
+        self.image_label.setPixmap(pixmap)
