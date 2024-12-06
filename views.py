@@ -132,3 +132,5 @@ class NewWindowLens(QDialog):
 
     def set_image(self, pixmap):
         self.image_label.setPixmap(pixmap)
+        
+        # next task . fix inner winndow bug
