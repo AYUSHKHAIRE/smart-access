@@ -41,7 +41,8 @@ class MyWindow(QMainWindow):
         """ Update image in the given QLabel location repeatedly """
         print("Initialized display view image threader")
         while not self.ui_stop_event.is_set():
-            image = self.vm.zoom_at_image(display_size=self.vm.display_image_size)
+            geom_cords = self.geometry()
+            image = self.vm.zoom_at_image(display_size=self.vm.display_image_size,geom_cords=geom_cords)
             if image:
                 image_data = image.tobytes()
                 qimage = QImage(image_data, self.vm.display_image_size, self.vm.display_image_size,
@@ -106,9 +107,9 @@ class MyWindow(QMainWindow):
         def move_and_display_window():
             while self.vm.external_window_follow_mouse:
                 x, y = self.vm.mouse_position
-                # self.new_window.follow_mouse(x, y)
+                self.new_window.follow_mouse(x, y)
                 self.new_window.image_label.setPixmap(self.dupllicatepixmap)
-                time.sleep(0.1)
+                time.sleep(self.vm.thread_pauser)
 
         self.vm.external_window_follow_mouse = True
         self.new_window = NewWindowLens()
@@ -127,3 +128,5 @@ if __name__ == "__main__":
     window = MyWindow()
     window.show()
     sys.exit(app.exec_())
+    
+    # next task
