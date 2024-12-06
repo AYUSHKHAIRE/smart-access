@@ -14,13 +14,15 @@ class ViewManager:
         self.d_width = 0
         self.d_height = 0
         self.screenshot_image = None  
-        self.thread_pauser = 0.1
+        self.thread_pauser = 0.05
         self.display_image_size = 400
         self.zoom_factor = 2
         self.stop_event = threading.Event()  # stop threads
         self.ui_stop_event = threading.Event()  # stop UI update thread
         self.external_window_follow_mouse = False
         self.external_winndow = None
+        self.windowsinnfo = None
+        self.last_mouse_position = (0,0)
 
     def get_screen_resolution(self):
         monitors = get_monitors()
@@ -37,26 +39,52 @@ class ViewManager:
             self.window_geom = self.external_window.geometry()
             return self.window_geom
 
-    def take_screenshot_timely_threader(self):
-        print("Initialized continue screenshot taker threader")
+    def take_screenshot_timely_threader(self, app=None):
+        print("Initialized continuous screenshot taker threader")
         with mss.mss() as sct:
             while not self.stop_event.is_set():
-                raw_screenshot = sct.grab(sct.monitors[0])
-                screenshot_bytes = mss.tools.to_png(raw_screenshot.rgb, raw_screenshot.size)
-                self.screenshot_image = Image.open(io.BytesIO(screenshot_bytes)).convert("RGB")
-                time.sleep(self.thread_pauser)
+                try:
+                    # Hide all windows if app is provided
+                    if app:
+                        for window in app.topLevelWidgets():
+                            window.setVisible(False)
 
-    def zoom_at_image(self, display_size=None):
+                    raw_screenshot = sct.grab(sct.monitors[0])
+                    mss.tools.to_png(raw_screenshot.rgb, raw_screenshot.size, output="screenshot_simple.png")
+                    screenshot_bytes = mss.tools.to_png(raw_screenshot.rgb, raw_screenshot.size)
+                    self.screenshot_image = Image.open(io.BytesIO(screenshot_bytes)).convert("RGB")
+                finally:
+                    # Show all windows again
+                    if app:
+                        for window in app.topLevelWidgets():
+                            window.setVisible(True)
+
+                    time.sleep(self.thread_pauser)
+
+    def zoom_at_image(self, display_size=None, geom_cords=None):
         if not self.screenshot_image:
             return Image.new("RGB", (display_size, display_size), "black")
         try:
+            # Extract window geometry from geom_cords
+            window_width = geom_cords.width()
+            window_height = geom_cords.height()
+            window_x = geom_cords.x()
+            window_y = geom_cords.y()
             screenshot_width, screenshot_height = self.screenshot_image.size
             mouse_x, mouse_y = self.get_mouse_position()
+            last_mouse_position = self.last_mouse_position
+            if (mouse_x,mouse_y) == (last_mouse_position):
+                return None
+            if window_x <= mouse_x <= (window_x + window_width) and window_y <= mouse_y <= (window_y + window_height):
+                return None
             crop_size = display_size // self.zoom_factor
             left = max(0, mouse_x - crop_size // 2)
             top = max(0, mouse_y - crop_size // 2)
-            cropped_region = self.screenshot_image.crop((left, top, left + crop_size, top + crop_size))
+            right = min(screenshot_width, left + crop_size)
+            bottom = min(screenshot_height, top + crop_size)
+            cropped_region = self.screenshot_image.crop((left, top, right, bottom))
             zoomed_region = cropped_region.resize((display_size, display_size), Image.Resampling.LANCZOS)
+            self.last_mouse_position = (mouse_x,mouse_y)
             return zoomed_region
         except Exception as e:
             print(f"Error: {e}")
@@ -94,12 +122,9 @@ class NewWindowLens(QDialog):
         super().__init__()
         self.setWindowTitle("New Window")
         self.resize(300, 200)
-
-        # Create layout and add QLabel for displaying image
         self.layout = QVBoxLayout()
         self.image_label = QLabel("Image will appear here")
         self.layout.addWidget(self.image_label)
-
         self.setLayout(self.layout)
 
     def follow_mouse(self, x, y):
