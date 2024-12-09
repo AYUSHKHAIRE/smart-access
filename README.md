@@ -6,6 +6,10 @@ Smart Access is an innovative tool designed to improve accessibility.
 
 ![Demo](https://raw.githubusercontent.com/AYUSHKHAIRE/smart-access/main/demo.gif)
 
+## Use
+
+[Download file for Winndows / Linux ](https://github.com/AYUSHKHAIRE/smart-access/raw/refs/heads/main/smartlens)
+
 ## Features
 
 - Zoomer effect
