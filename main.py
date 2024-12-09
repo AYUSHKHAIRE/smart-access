@@ -18,7 +18,7 @@ class MyWindow(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
         # Main UI elements
-        self.content_label = QLabel("Welcome! Click a menu option to display content.")
+        self.content_label = QLabel("Welcome! Click [ View ] > [ Start view ] to view lens.")
         self.layout.addWidget(self.content_label)
 
         self.image_label = QLabel()
@@ -44,9 +44,9 @@ class MyWindow(QMainWindow):
         view_menu.addAction(start_view_action)
 
         # Create Help menu
-        help_menu = menu_bar.addMenu("Help")
-        help_action = QAction("Hello Help", self)
-        help_action.triggered.connect(self.show_hello_help)
+        help_menu = menu_bar.addMenu("About")
+        help_action = QAction("About / report a bug / give feedback / contact owner ", self)
+        help_action.triggered.connect(self.show_hello_about)
         help_menu.addAction(help_action)
 
     def change_lens_size(self):
@@ -55,9 +55,8 @@ class MyWindow(QMainWindow):
         self.content_label.setText(f"Ring size: {value}")
 
     def change_lens_zoom_size(self):
-        value = int(self.zoom_size_combobox.currentText())
+        value = float(self.zoom_size_combobox.currentText())
         self.vm.zoom_factor = value
-        self.content_label.setText(f"Zoom size: {value}")
 
     def display_view_image_repeatedly(self):
         print("initialized image displayer thread")
@@ -92,7 +91,7 @@ class MyWindow(QMainWindow):
         self.lens_size_combobox.currentIndexChanged.connect(self.change_lens_size)
 
         self.zoom_size_combobox = QComboBox()
-        self.zoom_size_combobox.addItems([str(zoom) for zoom in range(1, 11)])
+        self.zoom_size_combobox.addItems([str(zoom/2) for zoom in range(3, 21)])
         self.zoom_size_combobox.currentIndexChanged.connect(self.change_lens_zoom_size)
 
         # Add sliders dynamically to UI
@@ -104,12 +103,20 @@ class MyWindow(QMainWindow):
         self.ui_update_thread.daemon = True
         self.ui_update_thread.start()
 
+        self.content_label.setText("adjust values to zoom in/out , or to increase width/height .")
+        self.image_label.setAlignment(Qt.AlignCenter)
         self.start_view_running_status = 1
 
-    def show_hello_help(self):
+    def show_hello_about(self):
         self.pause_all_threads_for_ui()
         self.clear_ui_for_new_view()
-        self.content_label.setText("Hello Help: This is the content for the Help menu!")
+        self.content_label.setText('''
+            <a href="https://github.com/AYUSHKHAIRE/smart-access">Contribute / report a bug</a><br>
+            <a href="https://github.com/AYUSHKHAIRE/">Know about developer</a>
+        ''')
+        self.content_label.setOpenExternalLinks(True)  # Enable links to open in a browser
+        self.content_label.setTextInteractionFlags(Qt.TextBrowserInteraction)  # Ensure interaction
+        self.content_label.setAlignment(Qt.AlignCenter)  # Optional: Align text in the center
 
     def pause_all_threads_for_ui(self):
         if self.vm:
@@ -120,14 +127,8 @@ class MyWindow(QMainWindow):
         self.start_view_running_status = 0
 
     def clear_ui_for_new_view(self):
-        """
-        Clears UI elements and resets view-related UI.
-        This ensures a clean slate for View and Help switching.
-        """
-        self.content_label.setText("Welcome! Click a menu option to display content.")
+        self.content_label.setText("adjust values to zoom in/out , or to increase/decrease width/height .")
         self.image_label.clear()
-
-        # Remove dynamically added lens/zoom combo boxes
         if self.lens_size_combobox:
             self.layout.removeWidget(self.lens_size_combobox)
             self.lens_size_combobox.deleteLater()
